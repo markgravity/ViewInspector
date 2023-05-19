@@ -24,7 +24,8 @@ internal enum EnvironmentInjection {
         let mirror = Mirror(reflecting: entity)
         guard let label = mirror.children
                 .first(where: {
-                    Inspector.typeName(value: $0.value, namespaced: true) == type
+                    isObject($0.value, superclassOf: environmentObject)
+                        || Inspector.typeName(value: $0.value, namespaced: true) == type
                 })?.label
         else { return entity }
         let envObjSize = EnvObject.structSize
@@ -57,6 +58,18 @@ internal enum EnvironmentInjection {
             }
             return entity
         }
+    }
+    private static func isObject(_ object1: Any, superclassOf object2: Any) -> Bool {
+        let object1Type = Inspector.typeName(value: object1, namespaced: true)
+        var object2Mirror = Mirror(reflecting: object2)
+        while let superclassMirror = object2Mirror.superclassMirror {
+            let object2Type = "SwiftUI.EnvironmentObject<\(Inspector.typeName(type: superclassMirror.subjectType, namespaced: true))>"
+            if object2Type == object1Type {
+                return true
+            }
+            object2Mirror = superclassMirror
+        }
+        return false
     }
 }
 
